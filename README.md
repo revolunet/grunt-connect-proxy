@@ -187,6 +187,67 @@ grunt.registerTask('e2etest', function (target) {
 });
 ```
 
+#### Use grunt-connect-proxy with connect-static
+
+Here's how to use `connect.static` with a proxy on a specific path.
+
+You need to explicitely declare **all** middlewares in your connect task config.
+
+```js
+
+var proxySnippet = require('grunt-connect-proxy/lib/utils').proxyRequest;
+
+grunt.initConfig({
+  connect: {
+    server: {
+      // start a local server
+      options: {
+        port: 3607,
+        // serve on any network interface
+        hostname: '0.0.0.0',
+        // use the 'build' directory for static files
+        base: 'build',
+        middleware: function (connect, options) {
+          // declare static middleware THEN grunt-proxy
+          return [
+              connect.static(options.base),
+              proxySnippet
+          ];
+        }
+      },
+      // defined the proxy config
+      // here we'll proxy /proxy/* to api.github.com
+      // eg: http://127.0.0.1:3607/proxy/gists will proxy http://api.github.com/gists
+      //
+      proxies: [
+        {
+          context: '/proxy',
+          host: 'api.github.com',
+          changeOrigin: true,
+          // remove the proxy prefix from the final request
+          rewrite: {
+            '^/proxy': ''
+          }
+        }
+      ]
+    }
+  }
+});
+
+// declare the task that :
+// - initialise the proxy
+// - start the modified connect server
+// - launch a watch task if any
+grunt.registerTask('server', function (target) {
+  grunt.task.run([
+    'configureProxies:server',
+    'connect:server',
+    'watch'
+  ]);
+});
+
+```
+
 
 ## Release History
 * 0.1.0 Initial release
